@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ToQuiz : une application mobile de quiz gamifié avec XP, ligues, badges, duels et classements. Téléchargez maintenant !" />
+    <meta name="keywords" content="ToQuiz, quiz, application mobile, gamification, classements, badges" />
+    <title>ToQuiz - Votre application de quiz ultime</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/webp" href="./logo.webp" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+      :root {
+        --primary: #7A5AF8;
+        --secondary: #FACC15;
+        --bg-color: #F3F4F6;
+        --text-color: #111827;
+        --card-bg: #FFFFFF;
+        --card-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+      }
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+      }
+      .bg-white {
+        background-color: var(--card-bg);
+        box-shadow: var(--card-shadow);
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(90deg, var(--primary), #5B21B6);
+      }
+      .btn-primary::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: 0.5s;
+      }
+      .btn-primary:hover::after {
+        left: 100%;
+      }
+      .card-hover {
+        transition: all 0.3s ease;
+        position: relative;
+      }
+      .card-hover:hover {
+        transform: scale(1.05) rotate(1deg);
+        box-shadow: 0 0 20px rgba(122, 90, 248, 0.3);
+      }
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+      @keyframes shine {
+        0% { background-position: -200%; }
+        100% { background-position: 200%; }
+      }
+      @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes flame {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes vibrate {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        50% { transform: translateX(2px); }
+        75% { transform: translateX(-2px); }
+        100% { transform: translateX(0); }
+      }
+      @keyframes fastPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+      }
+      @keyframes softPulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.9; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .animate-pulse { animation: pulse 2s infinite; }
+      .animate-shine {
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+        background-size: 200%;
+        animation: shine 3s infinite;
+      }
+      .animate-rotate { animation: rotate 10s linear infinite; }
+      .animate-flame { animation: flame 1.5s infinite; }
+      .animate-vibrate { animation: vibrate 0.3s infinite; }
+      .animate-fastPulse { animation: fastPulse 1s infinite; }
+      .animate-softPulse { animation: softPulse 2s infinite; }
+      .podium-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 1rem;
+        padding: 2rem 0;
+      }
+      .podium-item {
+        width: 100px;
+        border-radius: 1rem;
+        text-align: center;
+        padding: 1rem;
+        background-color: var(--card-bg);
+        box-shadow: var(--card-shadow);
+        position: relative;
+      }
+      .podium-1 {
+        height: 180px;
+        order: 2;
+        z-index: 3;
+        background: linear-gradient(to top, #facc15, #fde047);
+      }
+      .podium-2 {
+        height: 140px;
+        order: 1;
+        z-index: 2;
+        background: linear-gradient(to top, #d1d5db, #e5e7eb);
+      }
+      .podium-3 {
+        height: 120px;
+        order: 3;
+        z-index: 1;
+        background: linear-gradient(to top, #f97316, #fdba74);
+      }
+      .podium-item .avatar-fallback,
+      .podium-item img {
+        margin-top: -2rem;
+        margin-bottom: 0.5rem;
+        width: 64px;
+        height: 64px;
+        border-radius: 9999px;
+        border: 4px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+      }
+      .avatar-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.25rem;
+        color: white;
+        background: var(--primary);
+      }
+      .leaderboard-container {
+        max-height: 400px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary) #e5e7eb;
+      }
+      .leaderboard-container::-webkit-scrollbar {
+        width: 8px;
+      }
+      .leaderboard-container::-webkit-scrollbar-track {
+        background: #e5e7eb;
+      }
+      .leaderboard-container::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 4px;
+      }
+      @media (max-width: 768px) {
+        .podium-container {
+          flex-direction: column;
+          align-items: center;
+          gap: 2rem;
+        }
+        .podium-item {
+          width: 90%;
+          max-width: 300px;
+          height: 120px;
+          margin-bottom: 0;
+        }
+        .podium-1, .podium-2, .podium-3 {
+          height: 120px;
+        }
+      }
+      @media (min-width: 640px) and (max-width: 1024px) {
+        .grid.sm\:grid-cols-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .grid.lg\:grid-cols-4 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .league-bronze { background: linear-gradient(to bottom, #b89778, #8b5523); }
+      .league-argent { background: linear-gradient(to bottom, #d3d3d3, #a9a9a9); }
+      .league-or { background: linear-gradient(to bottom, #ffd700, #e6b800); }
+      .league-platine { background: linear-gradient(to bottom, #00b7eb, #0083b0); }
+      .league-diamant { background: linear-gradient(to bottom, #b9f2ff, #4b0082); }
+      .league-champion { background: linear-gradient(to bottom, #ff4500, #b22222); }
+      .league-maitre-champion { background: linear-gradient(to bottom, #1e90ff, #0000cd); }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <header class="bg-gradient-to-r from-[#7A5AF8] to-[#5B21B6] text-white sticky top-0 z-50 shadow-lg" data-aos="fade-down" data-aos-duration="1000">
+      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <a href="#" class="flex items-center" aria-label="Retour à l'accueil">
+          <picture>
+            <source srcset="./logo.webp" type="image/webp" />
+            <img src="./logo.png" alt="Logo ToQuiz" class="h-10 w-10 mr-2 object-cover" />
+          </picture>
+          <span class="text-2xl font-bold">ToQuiz</span>
+        </a>
+        <nav class="hidden md:flex space-x-6" id="nav-menu" aria-label="Menu principal">
+          <a href="#fonctionnalites" class="text-sm font-medium hover:text-white/plural transition">Fonctionnalités</a>
+          <a href="#ligues" class="text-sm font-medium hover:text-white/80 transition">Ligues</a>
+          <a href="#badges" class="text-sm font-medium hover:text-white/80 transition">Badges</a>
+          <a href="#classement" class="text-sm font-medium hover:text-white/80 transition">Classement</a>
+        </nav>
+        <div class="flex items-center gap-4">
+          <a href="#download" class="btn-primary hidden md:block" data-aos="fade-left" data-aos-delay="200">Télécharger</a>
+          <button id="menu-toggle" class="md:hidden text-white focus:outline-none" aria-label="Ouvrir le menu">
+            <span class="iconify h-6 w-6" data-icon="mdi:menu"></span>
+          </button>
+        </div>
+      </div>
+      <div id="mobile-menu" class="hidden md:hidden bg-[#7A5AF8] px-4 py-6" data-aos="fade-down" data-aos-delay="100">
+        <nav class="flex flex-col space-y-4" aria-label="Menu mobile">
+          <a href="#fonctionnalites" class="text-sm font-medium hover:text-white/80 transition">Fonctionnalités</a>
+          <a href="#ligues" class="text-sm font-medium hover:text-white/80 transition">Ligues</a>
+          <a href="#badges" class="text-sm font-medium hover:text-white/80 transition">Badges</a>
+          <a href="#classement" class="text-sm font-medium hover:text-white/80 transition">Classement</a>
+          <a href="#download" class="btn-primary block text-center">Télécharger</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="bg-gradient-to-br from-[#7A5AF8] to-[#5B21B6] text-white py-20 px-4" data-aos="fade-up" data-aos-duration="1000">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div class="md:w-1/2 text-center md:text-left" data-aos="fade-right" data-aos-delay="200">
+            <picture>
+              <source srcset="./logo.webp" type="image/webp" />
+              <img src="./logo.png" alt="Logo ToQuiz" class="h-20 w-20 mb-6 mx-auto md:mx-0" />
+            </picture>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 leading-tight">Devenez un maître du quiz avec ToQuiz</h1>
+            <p class="text-xl mb-8 opacity-90">Participez à des quiz passionnants, gagnez des XP, débloquez des badges et affrontez vos amis dans des duels en temps réel.</p>
+            <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+              <a href="#download" class="btn-primary" data-aos="zoom-in" data-aos-delay="400">Télécharger maintenant</a>
+              <a href="#fonctionnalites" class="btn-primary border border-white text-white" data-aos="zoom-in" data-aos-delay="600">Découvrir</a>
+            </div>
+          </div>
+          <div class="md:w-2/5 relative" data-aos="fade-left" data-aos-delay="300">
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl transform transition hover:scale-105 card-hover">
+              <div class="text-center mb-6">
+                <span class="bg-[#7A5AF8] text-white px-3 py-1 rounded-full text-sm">Quiz Démo</span>
+                <h3 class="font-bold text-xl mt-2">Testez vos connaissances !</h3>
+              </div>
+              <div class="bg-gray-900 text-white p-4 rounded-lg mb-6 font-mono text-sm">console.log(typeof NaN);</div>
+              <div class="space-y-3" id="quiz-options">
+                <button class="w-full p-3 rounded-lg border border-white/20 hover:bg-white/10 transition quiz-option" data-answer="correct" data-aos="fade-up" data-aos-delay="100">number</button>
+                <button class="w-full p-3 rounded-lg border border-white/20 hover:bg-white/10 transition quiz-option" data-aos="fade-up" data-aos-delay="150">string</button>
+                <button class="w-full p-3 rounded-lg border border-white/20 hover:bg-white/10 transition quiz-option" data-aos="fade-up" data-aos-delay="200">undefined</button>
+                <button class="w-full p-3 rounded-lg border border-white/20 hover:bg-white/10 transition quiz-option" data-aos="fade-up" data-aos-delay="250">NaN</button>
+              </div>
+              <p id="quiz-feedback" class="mt-4 text-center text-sm hidden"></p>
+            </div>
+            <div class="absolute -top-5 -left-5 w-10 h-10 bg-[#7A5AF8] rounded-full animate-pulse"></div>
+            <div class="absolute -bottom-3 -right-3 w-6 h-6 bg-[#5B21B6] rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="fonctionnalites" class="py-20 px-6 bg-gradient-to-b from-white to-gray-50" data-aos="fade-up" data-aos-duration="1000">
+        <div class="container mx-auto text-center max-w-7xl">
+          <span class="inline-block bg-[#7A5AF8] text-white px-4 py-2 rounded-full text-sm mb-4 font-semibold tracking-wide shadow-lg" data-aos="zoom-in">
+            Fonctionnalités
+          </span>
+          <h2 class="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 leading-tight drop-shadow-md" data-aos="fade-in" data-aos-delay="200">
+            Pourquoi choisir <span class="text-[#7A5AF8]">ToQuiz</span>
+          </h2>
+          <p class="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto mb-16 tracking-wide" data-aos="fade-up" data-aos-delay="300">
+            Une plateforme ludique pour apprendre, compétitionner et progresser.
+          </p>
+          <div class="grid md:grid-cols-3 gap-10">
+            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center card-hover" data-aos="fade-up" data-aos-delay="400">
+              <span class="iconify text-[#7A5AF8] mb-5" data-icon="mdi:book-open-variant" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-3 text-gray-900">Quiz Variés</h3>
+              <p class="text-gray-600 max-w-xs leading-relaxed">
+                Des milliers de questions pour gagner des XP et progresser.
+              </p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center card-hover" data-aos="fade-up" data-aos-delay="500">
+              <span class="iconify text-[#7A5AF8] mb-5" data-icon="mdi:timer" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-3 text-gray-900">Duels en Temps Réel</h3>
+              <p class="text-gray-600 max-w-xs leading-relaxed">
+                Affrontez vos amis dans des duels palpitants.
+              </p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center card-hover" data-aos="fade-up" data-aos-delay="600">
+              <span class="iconify text-[#7A5AF8] mb-5" data-icon="mdi:trophy" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-3 text-gray-900">Classements</h3>
+              <p class="text-gray-600 max-w-xs leading-relaxed">
+                Grimpez dans les classements globaux et par ligue.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="ligues" class="py-20 px-6 bg-gray-50" data-aos="fade-up" data-aos-duration="1000">
+        <div class="container mx-auto text-center max-w-7xl">
+          <span class="inline-block bg-[#7A5AF8] text-white px-4 py-2 rounded-full text-sm mb-4 font-semibold tracking-wide shadow-lg" data-aos="zoom-in">
+            Ligues
+          </span>
+          <h2 class="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 leading-tight drop-shadow-md" data-aos="fade-in" data-aos-delay="200">
+            Progressez à travers les ligues
+          </h2>
+          <p class="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto mb-16 tracking-wide" data-aos="fade-up" data-aos-delay="300">
+            De Bronze à Maître Champion, chaque ligue est un nouveau défi.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-[#cd7f32] to-[#b06c27] text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="100">
+              <span class="iconify mb-5" data-icon="mdi:medal" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Bronze</h3>
+              <p class="opacity-90 text-sm tracking-wide">0 - 1500 XP</p>
+            </div>
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-gray-400 to-gray-600 text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="150">
+              <span class="iconify mb-5" data-icon="mdi:trophy-variant-outline" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Argent</h3>
+              <p class="opacity-90 text-sm tracking-wide">1501 - 3000 XP</p>
+            </div>
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-yellow-400 to-yellow-500 text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="200">
+              <span class="iconify mb-5" data-icon="mdi:trophy" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Or</h3>
+              <p class="opacity-90 text-sm tracking-wide">3001 - 4500 XP</p>
+            </div>
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-[#8e8ef3] to-[#5b5bc1] text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="250">
+              <span class="iconify mb-5" data-icon="mdi:shield-star-outline" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Platine</h3>
+              <p class="opacity-90 text-sm tracking-wide">4501 - 6000 XP</p>
+            </div>
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-[#4bb4f5] to-[#1878c3] text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="300">
+              <span class="iconify mb-5" data-icon="mdi:diamond-stone" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Diamant</h3>
+              <p class="opacity-90 text-sm tracking-wide">6001 - 7500 XP</p>
+            </div>
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-[#f75959] to-[#b82e2e] text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="350">
+              <span class="iconify mb-5" data-icon="mdi:sword-cross" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Champion</h3>
+              <p class="opacity-90 text-sm tracking-wide">7501 - 9000 XP</p>
+            </div>
+            <div class="rounded-2xl p-8 shadow-lg card-hover bg-gradient-to-tr from-[#f0c419] to-[#d4af37] text-white flex flex-col items-center text-center" data-aos="fade-up" data-aos-delay="400">
+              <span class="iconify mb-5" data-icon="mdi:crown" style="font-size: 3rem;"></span>
+              <h3 class="text-2xl font-bold mb-2">Maître Champion</h3>
+              <p class="opacity-90 text-sm tracking-wide">9001+ XP</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="badges" class="py-16 px-4" data-aos="fade-up" data-aos-duration="1000">
+        <div class="container mx-auto text-center">
+          <span class="bg-[#7A5AF8] text-white px-3 py-1 rounded-full text-sm mb-2 inline-block" data-aos="zoom-in">Badges</span>
+          <h2 class="text-3xl md:text-4xl font-bold mb-4" data-aos="fade-in" data-aos-delay="100">Débloquez des badges uniques</h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-12" data-aos="fade-up" data-aos-delay="200">Gagnez des badges animés pour vos exploits dans ToQuiz.</p>
+          <div id="badges-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="300"></div>
+        </div>
+      </section>
+
+      <section id="classement" class="py-16 px-4 bg-gray-100" data-aos="fade-up" data-aos-duration="1000">
+        <div class="container mx-auto text-center">
+          <span class="bg-[#7A5AF8] text-white px-3 py-1 rounded-full text-sm mb-2 inline-block" data-aos="zoom-in">Classement</span>
+          <h2 class="text-3xl md:text-4xl font-bold mb-4" data-aos="fade-in" data-aos-delay="100">Dominez les classements</h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-12" data-aos="fade-up" data-aos-delay="200">Montrez votre talent dans les classements globaux et par ligue.</p>
+          <div class="podium-container mb-12">
+            <div id="podium-2" class="podium-item podium-2" data-aos="zoom-in" data-aos-delay="200"></div>
+            <div id="podium-1" class="podium-item podium-1" data-aos="zoom-in-up" data-aos-delay="300"></div>
+            <div id="podium-3" class="podium-item podium-3" data-aos="zoom-in" data-aos-delay="200"></div>
+          </div>
+          <div class="bg-white rounded-xl shadow-lg p-6 max-w-3xl mx-auto leaderboard-container" data-aos="fade-up" data-aos-delay="400">
+            <table class="w-full" id="leaderboard-table">
+              <thead>
+                <tr class="border-b">
+                  <th class="py-3 text-left text-sm font-medium text-gray-500">Rang</th>
+                  <th class="py-3 text-left text-sm font-medium text-gray-500">Joueur</th>
+                  <th class="py-3 text-right text-sm font-medium text-gray-500">Score</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="download" class="py-16 px-4 bg-gradient-to-r from-[#7A5AF8] to-[#5B21B6] text-white" data-aos="fade-up" data-aos-duration="1000">
+        <div class="container mx-auto text-center">
+          <h2 class="text-3xl md:text-4xl font-bold mb-4" data-aos="fade-in" data-aos-delay="100">Rejoignez l'aventure ToQuiz</h2>
+          <p class="text-xl mb-8 opacity-90 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="200">Téléchargez l'application et commencez à dominer les quiz dès maintenant !</p>
+          <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="#" 
+            class="btn-primary flex items-center justify-center gap-3 px-5 py-3 bg-gray-300 text-gray-600 cursor-not-allowed rounded-md select-none font-semibold text-sm shadow-md transition 
+                   hover:bg-gray-300"
+            data-aos="zoom-in" 
+            data-aos-delay="300" 
+            aria-disabled="true" 
+            tabindex="-1"
+            title="Disponible bientôt">
+           <span class="iconify h-6 w-6" data-icon="mdi:apple"></span>
+           Télécharger sur iOS
+           <span class="ml-2 text-xs italic">(indisponible pour le moment)</span>
+         </a>
+         
+            <a href="https://drive.google.com/file/d/1vew0PvyCXrf5PQKOutJqX1CDGnJVhwXy/view?usp=sharing" download class="btn-primary flex items-center justify-center gap-2" data-aos="zoom-in" data-aos-delay="400">
+              <span class="iconify h-6 w-6" data-icon="mdi:android"></span> Télécharger l'APK (74 Mo)
+            </a>
+          </div>
+          <p class="text-sm mt-4 opacity-80" data-aos="fade-up" data-aos-delay="500">Note : Assurez-vous d'avoir une connexion stable pour télécharger l'APK (74 Mo).</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-gray-900 text-white py-12 px-4 mt-auto" data-aos="fade-up" data-aos-duration="1000">
+      <div class="container mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div data-aos="fade-right" data-aos-delay="100">
+            <div class="flex items-center mb-4">
+              <a href="#" class="flex items-center">
+                <picture>
+                  <source srcset="./logo.webp" type="image/webp" />
+                  <img src="./logo.png" alt="Logo ToQuiz" class="h-10 w-10 mr-2 object-cover" />
+                </picture>
+                <span class="text-2xl font-bold">ToQuiz</span>
+              </a>
+            </div>
+            <p class="text-gray-400">Votre plateforme ultime pour les quiz et compétitions.</p>
+          </div>
+          <div data-aos="fade-up" data-aos-delay="200">
+            <h4 class="text-xl font-semibold mb-4">Contact</h4>
+            <ul class="space-y-2 text-gray-400 text-sm">
+              <li>Email: <a href="mailto:razafitosy@gmail.com" class="hover:text-white">razafitosy@gmail.com</a></li>
+              <li>Téléphone: <a href="tel:+261380525383" class="hover:text-white">+261 38 05 253 83</a></li>
+              <li>Facebook: <a href="https://facebook.com/RAZAFITSOTRA.Toslin" target="_blank" rel="noopener noreferrer" class="hover:text-white">RAZAFITSOTRA Toslin</a></li>
+              <li>Portfolio: <a href="https://toslin-five.vercel.app" target="_blank" rel="noopener noreferrer" class="hover:text-white">toslin-five.vercel.app</a></li>
+              <li>LinkedIn: <a href="https://linkedin.com/in/RAZAFITSOTRA" target="_blank" rel="noopener noreferrer" class="hover:text-white">Toslin RAZAFITSOTRA</a></li>
+            </ul>
+          </div>
+          <div data-aos="fade-left" data-aos-delay="300">
+            <h4 class="text-xl font-semibold mb-4">Liens utiles</h4>
+            <ul class="space-y-2 text-gray-400 text-sm">
+              <li><a href="#fonctionnalites" class="hover:text-white">Fonctionnalités</a></li>
+              <li><a href="#ligues" class="hover:text-white">Ligues</a></li>
+              <li><a href="#badges" class="hover:text-white">Badges</a></li>
+              <li><a href="#classement" class="hover:text-white">Classement</a></li>
+              <li><a href="#download" class="hover:text-white">Télécharger</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400" data-aos="fade-up" data-aos-delay="400">
+          <p>© 2025 ToQuiz. Tous droits réservés.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const { createClient } = supabase;
+      const _supabase = createClient(
+        "https://nyuvvigboqnuacfkkwtt.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55dXZ2aWdib3FudWFjZmtrd3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMTM0NjQsImV4cCI6MjA2MzU4OTQ2NH0.B3t-pIX5wJbnFk8uxZvavMjbrKJHlzBO_1xOrRTFgp4"
+
+      );
+
+      const leagueClasses = {
+        'Bronze': 'league-bronze',
+        'Argent': 'league-argent',
+        'Or': 'league-or',
+        'Platine': 'league-platine',
+        'Diamant': 'league-diamant',
+        'Champion': 'league-champion',
+        'Maître Champion': 'league-maitre-champion'
+      };
+
+      async function getRandomBadges() {
+        try {
+          const { data, error } = await _supabase
+            .from("badges")
+            .select("*");
+
+          if (error) throw error;
+
+          console.log(`Récupération de ${data.length} badges`);
+          
+          // Mélanger les badges aléatoirement
+          const shuffled = data.sort(() => Math.random() - 0.5);
+
+          // Retourner seulement les 15 premiers
+          return shuffled.slice(0, 15);
+        } catch (e) {
+          console.error('Erreur lors de la récupération des badges :', e);
+          throw new Error(`Échec de la récupération des badges : ${e.message}`);
+        }
+      }
+
+
+      async function getLeaderboard() {
+        try {
+          const { data, error } = await _supabase
+            .from("users")
+            .select("id, pseudo, avatar, firstname, lastname, status, email, league, xp, duel_wins, is_active, role, created_at, updated_at")
+            .order("xp", { ascending: false })
+            .limit(15);
+          if (error) throw error;
+          console.log(`Classement récupéré : ${data.length} utilisateurs`);
+          return data;
+        } catch (e) {
+          console.error('Erreur lors de la récupération du classement :', e);
+          throw new Error(`Échec de la récupération du classement : ${e.message}`);
+        }
+      }
+
+      const badgeIcons = {
+        "Aventurier Débutant": "mdi:walk",
+        "Explorateur Curieux": "mdi:map-search",
+        "Gardien de la Connaissance": "mdi:shield-book",
+        "Sentinelle du Savoir": "mdi:book-lock",
+        "Protecteur de la Sagesse": "mdi:shield-check",
+        "Chevalier du Savoir": "mdi:sword",
+        "Roi du Savoir": "mdi:chess-king",
+        "Empereur de la Connaissance": "mdi:chess-queen",
+        "Stratège Érudite": "mdi:lightbulb-on-outline",
+        "Génie Suprême": "mdi:brain",
+        "Défi Relevé": "mdi:sword-cross",
+        "Combattant Émergeant": "mdi:boxing-glove",
+        "Champion Ascendant": "mdi:shield-sword",
+        "Maître des Duels": "mdi:sword",
+        "Légende des Arènes": "mdi:crown",
+        "Dieu du Duel": "mdi:lightning-bolt",
+        "Ligue de Bronze": "mdi:star-outline",
+        "Ligue d'Argent": "mdi:star-half",
+        "Ligue d'Or": "mdi:star",
+        "Ligue de Platine": "mdi:diamond-stone",
+        "Ligue de Diamant": "mdi:diamond",
+        "Ligue Mythique": "mdi:ghost",
+        "Flamme Montante": "mdi:fire",
+        "Ascension Rapide": "mdi:rocket-launch",
+        "Progrès Fulgurant": "mdi:trending-up",
+        "Conquérant Éclair": "mdi:flash",
+        "Divin en Essor": "mdi:infinity",
+        "Inarrêtable": "mdi:run-fast",
+        "Immortel": "mdi:skull",
+        "Équilibre Mental": "mdi:scale-balance",
+        "Harmonie d'Apprentissage": "mdi:yin-yang",
+        "Maîtrise Totale": "mdi:target"
+      };
+
+      function getIconForBadge(name) {
+        return badgeIcons[name] || "mdi:check-circle";
+      }
+
+      async function displayBadges() {
+        const badgesContainer = document.getElementById("badges-container");
+        badgesContainer.innerHTML = '<div class="loader"></div>';
+        try {
+          const badges = await getRandomBadges();
+          badgesContainer.innerHTML = "";
+          badges.forEach((badge, index) => {
+            const animationClass = badge.animation || "animate-pulse";
+            const color = badge.color || "#4CAF50";
+            const icon = getIconForBadge(badge.name);
+            const badgeHtml = `
+              <div class="bg-white rounded-xl shadow-lg p-6 transform transition card-hover" data-aos="flip-up" data-aos-delay="${index * 50}">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${animationClass}" style="background-color: ${color};">
+                  <span class="iconify h-8 w-8 text-white" data-icon="${icon}"></span>
+                </div>
+                <h3 class="text-lg font-bold text-center text-gray-900">${badge.name}</h3>
+                <p class="text-gray-600 text-sm text-center">${badge.description}</p>
+              </div>
+            `;
+            badgesContainer.innerHTML += badgeHtml;
+          });
+        } catch (e) {
+          console.error('Erreur lors de l’affichage des badges :', e);
+          badgesContainer.innerHTML = '<p class="text-red-500">Erreur lors du chargement des badges.</p>';
+        }
+      }
+
+      function getAvatarHTML(user) {
+        if (user.avatar) {
+          return `<img src="${user.avatar}" alt="${user.pseudo}" />`;
+        } else {
+          return `<div class="avatar-fallback">${user.pseudo.charAt(0).toUpperCase()}</div>`;
+        }
+      }
+
+      async function displayLeaderboard() {
+        const leaderboardBody = document.getElementById("leaderboard-body");
+        const podium1 = document.getElementById("podium-1");
+        const podium2 = document.getElementById("podium-2");
+        const podium3 = document.getElementById("podium-3");
+        leaderboardBody.innerHTML = '<tr><td colspan="3"><div class="loader"></div></td></tr>';
+        try {
+          const users = await getLeaderboard();
+          leaderboardBody.innerHTML = '';
+          if (users[0]) {
+            const u = users[0];
+            podium1.classList.add(leagueClasses[u.league] || '');
+            podium1.innerHTML = `
+              ${getAvatarHTML(u)}
+              <p class="font-bold">${u.pseudo}</p>
+              <p class="text-sm opacity-80">${u.league}</p>
+              <p class="font-semibold">${u.xp} xp</p>
+            `;
+          }
+          if (users[1]) {
+            const u = users[1];
+            podium2.classList.add(leagueClasses[u.league] || '');
+            podium2.innerHTML = `
+              ${getAvatarHTML(u)}
+              <p class="font-bold">${u.pseudo}</p>
+              <p class="text-sm opacity-80">${u.league}</p>
+              <p class="font-semibold">${u.xp} xp</p>
+            `;
+          }
+          if (users[2]) {
+            const u = users[2];
+            podium3.classList.add(leagueClasses[u.league] || '');
+            podium3.innerHTML = `
+              ${getAvatarHTML(u)}
+              <p class="font-bold">${u.pseudo}</p>
+              <p class="text-sm opacity-80">${u.league}</p>
+              <p class="font-semibold">${u.xp} xp</p>
+            `;
+          }
+          users.slice(3, 15).forEach((user, index) => {
+            leaderboardBody.innerHTML += `
+              <tr class="hover:bg-gray-50 transition" data-aos="fade-up" data-aos-delay="${index * 50}">
+                <td class="py-3"><div class="w-8 h-8 rounded-full bg-[#7A5AF8] flex items-center justify-center text-white">${index + 4}</div></td>
+                <td class="py-3">
+                  <div class="flex items-center">
+                    <div class="h-10 w-10 rounded-full ${user.avatar ? '' : 'avatar-fallback'} flex items-center justify-center mr-3" style="${user.avatar ? `background-image: url(${user.avatar}); background-size: cover;` : ''}">
+                      ${user.avatar ? '' : user.pseudo.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p class="font-medium">${user.pseudo}</p>
+                      <p class="text-sm text-gray-500">${user.league}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3 text-right font-semibold">${user.xp} xp</td>
+              </tr>
+            `;
+          });
+        } catch (e) {
+          console.error('Erreur lors de l’affichage du classement :', e);
+          leaderboardBody.innerHTML = '<tr><td colspan="3" class="text-red-500">Erreur lors du chargement du classement.</td></tr>';
+        }
+      }
+
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          document.querySelector(this.getAttribute("href")).scrollIntoView({
+            behavior: "smooth",
+          });
+        });
+      });
+
+      let quizAnswered = false;
+      document.querySelectorAll('.quiz-option').forEach(button => {
+        button.addEventListener('click', () => {
+          if (quizAnswered) return;
+          const feedback = document.getElementById('quiz-feedback');
+          feedback.classList.remove('hidden');
+          if (button.dataset.answer === 'correct') {
+            feedback.innerHTML = `
+              Correct ! La réponse correcte est 'number'. Vous gagnez 50 XP !
+              <span class="iconify inline h-6 w-6 ml-2" data-icon="mdi:trophy"></span>
+            `;
+            feedback.classList.remove('text-red-400');
+            feedback.classList.add('text-green-400', 'animate-pulse');
+            quizAnswered = true;
+            button.classList.add('bg-green-500/20', 'border-green-500');
+            setTimeout(() => {
+              const quizOptions = document.getElementById('quiz-options');
+              quizOptions.innerHTML += `
+                <button id="quiz-retry" class="w-full p-3 rounded-lg border border-white/20 hover:bg-white/10 transition mt-4" data-aos="fade-up" data-aos-delay="100">Réessayer</button>
+              `;
+              document.getElementById('quiz-retry').addEventListener('click', () => {
+                quizAnswered = false;
+                feedback.classList.add('hidden');
+                feedback.classList.remove('text-green-400', 'text-red-400', 'animate-pulse');
+                document.querySelectorAll('.quiz-option').forEach(btn => {
+                  btn.classList.remove('bg-green-500/20', 'bg-red-500/20', 'border-green-500', 'border-red-500');
+                });
+                document.getElementById('quiz-retry').remove();
+              });
+            }, 1000);
+          } else {
+            feedback.textContent = 'Incorrect. Essayez encore !';
+            feedback.classList.remove('text-green-400');
+            feedback.classList.add('text-red-400');
+            button.classList.add('bg-red-500/20', 'border-red-500');
+          }
+        });
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        menuToggle.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+        });
+        AOS.init({
+          duration: 1000,
+          once: false,
+          mirror: true
+        });
+        displayBadges();
+        displayLeaderboard();
+      });
+    </script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  </body>
+</html>
